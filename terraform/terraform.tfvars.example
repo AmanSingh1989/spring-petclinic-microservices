@@ -1,0 +1,27 @@
+# AWS Region
+aws_region = "us-east-1"
+
+# Environment tag
+environment = "sandbox"
+
+# Project naming prefix
+project_name = "petclinic"
+
+# Cluster sizing: 4 micro instances for distributed learning
+ec2_instance_type  = "t3.micro"
+ec2_instance_count = 4
+
+# Toggle to include/exclude the Spring AI Chatbot (saves RAM when false)
+enable_genai = false
+
+# Database settings
+db_name     = "petclinic"
+db_username = "petclinic"
+# db_password: Leave commented out to auto-generate a secure random password stored in AWS SSM Parameter Store, or specify your own:
+# db_password = ""
+
+# OpenAI Key (Only required if enable_genai is set to true)
+openai_api_key = ""
+
+# IP address allowed to SSH into nodes (set to your IP/32 or leave 0.0.0.0/0 in sandbox)
+allowed_ssh_cidr = "0.0.0.0/0"

@@ -1,0 +1,110 @@
+name: Build and Deploy to AWS ECS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      enable_genai:
+        description: "Include Spring AI GenAI Chatbot Service?"
+        type: boolean
+        required: false
+        default: false
+      aws_region:
+        description: "AWS Region"
+        type: string
+        required: false
+        default: "us-east-1"
+
+jobs:
+  build-and-deploy:
+    name: Build, Containerize & Deploy to ECS
+    runs-on: ubuntu-latest
+
+    env:
+      AWS_REGION: ${{ inputs.aws_region || 'us-east-1' }}
+      ENABLE_GENAI: ${{ inputs.enable_genai || false }}
+      PROJECT_NAME: petclinic
+      CLUSTER_NAME: petclinic-cluster
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }} # Needed for temporary Pluralsight / AWS Sandbox sessions
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build JARs and Docker Images with Maven
+        run: |
+          chmod +x ./mvnw
+          ./mvnw clean install -P buildDocker -DskipTests -Ddocker.image.prefix=${{ steps.login-ecr.outputs.registry }}/petclinic
+
+      - name: Tag and Push Images to Amazon ECR
+        run: |
+          REGISTRY="${{ steps.login-ecr.outputs.registry }}/petclinic"
+          SERVICES=(
+            "spring-petclinic-config-server:config-server"
+            "spring-petclinic-discovery-server:discovery-server"
+            "spring-petclinic-api-gateway:api-gateway"
+            "spring-petclinic-customers-service:customers-service"
+            "spring-petclinic-visits-service:visits-service"
+            "spring-petclinic-vets-service:vets-service"
+            "spring-petclinic-admin-server:admin-server"
+          )
+
+          if [ "${{ env.ENABLE_GENAI }}" = "true" ]; then
+            SERVICES+=("spring-petclinic-genai-service:genai-service")
+          fi
+
+          for ITEM in "${SERVICES[@]}"; do
+            SRC_NAME="${ITEM%%:*}"
+            DST_NAME="${ITEM##*:}"
+
+            echo "Pushing ${REGISTRY}/${DST_NAME}..."
+            docker tag "${REGISTRY}/${SRC_NAME}:latest" "${REGISTRY}/${DST_NAME}:latest"
+            docker tag "${REGISTRY}/${SRC_NAME}:latest" "${REGISTRY}/${DST_NAME}:${{ github.sha }}"
+            docker push "${REGISTRY}/${DST_NAME}:latest"
+            docker push "${REGISTRY}/${DST_NAME}:${{ github.sha }}"
+          done
+
+      - name: Trigger Rolling Deployment on Amazon ECS Services
+        run: |
+          SERVICES=(
+            "petclinic-config-server"
+            "petclinic-discovery-server"
+            "petclinic-api-gateway"
+            "petclinic-customers-service"
+            "petclinic-visits-service"
+            "petclinic-vets-service"
+            "petclinic-admin-server"
+          )
+
+          if [ "${{ env.ENABLE_GENAI }}" = "true" ]; then
+            SERVICES+=("petclinic-genai-service")
+          fi
+
+          for SVC in "${SERVICES[@]}"; do
+            echo "Triggering new deployment for service: $SVC"
+            aws ecs update-service \
+              --cluster "${{ env.CLUSTER_NAME }}" \
+              --service "$SVC" \
+              --force-new-deployment \
+              --region "${{ env.AWS_REGION }}" || echo "Service $SVC may not exist yet or is pending creation."
+          done
