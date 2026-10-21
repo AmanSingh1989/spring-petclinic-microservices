@@ -42,6 +42,18 @@ locals {
       value = local.db_password
     }
   ]
+
+  # Map config-server and discovery-server hostnames directly to Node 1 private IP inside containers
+  extra_hosts = [
+    {
+      hostname  = "config-server"
+      ipAddress = aws_instance.ecs_nodes[0].private_ip
+    },
+    {
+      hostname  = "discovery-server"
+      ipAddress = aws_instance.ecs_nodes[0].private_ip
+    }
+  ]
 }
 
 # -------------------------------------------------------------
@@ -149,6 +161,8 @@ resource "aws_ecs_task_definition" "discovery_server" {
           "awslogs-stream-prefix" = "discovery-server"
         }
       }
+
+      extraHosts = local.extra_hosts
     }
   ])
 }
@@ -203,6 +217,8 @@ resource "aws_ecs_task_definition" "api_gateway" {
           "awslogs-stream-prefix" = "api-gateway"
         }
       }
+
+      extraHosts = local.extra_hosts
     }
   ])
 }
@@ -257,6 +273,8 @@ resource "aws_ecs_task_definition" "customers_service" {
           "awslogs-stream-prefix" = "customers-service"
         }
       }
+
+      extraHosts = local.extra_hosts
     }
   ])
 }
@@ -305,6 +323,8 @@ resource "aws_ecs_task_definition" "visits_service" {
           "awslogs-stream-prefix" = "visits-service"
         }
       }
+
+      extraHosts = local.extra_hosts
     }
   ])
 }
@@ -353,6 +373,8 @@ resource "aws_ecs_task_definition" "vets_service" {
           "awslogs-stream-prefix" = "vets-service"
         }
       }
+
+      extraHosts = local.extra_hosts
     }
   ])
 }
@@ -401,6 +423,8 @@ resource "aws_ecs_task_definition" "admin_server" {
           "awslogs-stream-prefix" = "admin-server"
         }
       }
+
+      extraHosts = local.extra_hosts
     }
   ])
 }
@@ -455,6 +479,8 @@ resource "aws_ecs_task_definition" "genai_service" {
           "awslogs-stream-prefix" = "genai-service"
         }
       }
+
+      extraHosts = local.extra_hosts
     }
   ])
 }
