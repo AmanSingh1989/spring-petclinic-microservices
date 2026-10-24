@@ -5,6 +5,11 @@ echo "=========================================================="
 echo " Starting Spring PetClinic AWS Sandbox Deployment"
 echo "=========================================================="
 
+if [ -f ".env" ]; then
+    echo "Loading AWS credentials from .env..."
+    export $(grep -v '^#' .env | xargs)
+fi
+
 if [ ! -f "terraform.tfvars" ]; then
     echo "Creating terraform.tfvars from example..."
     cp terraform.tfvars.example terraform.tfvars

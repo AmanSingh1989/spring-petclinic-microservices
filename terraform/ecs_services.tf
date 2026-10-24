@@ -69,9 +69,10 @@ resource "aws_ecs_task_definition" "config_server" {
     {
       name      = "config-server"
       image     = "${aws_ecr_repository.services["config-server"].repository_url}:latest"
-      cpu       = 256
-      memory    = 400
-      essential = true
+      cpu               = 256
+      memory            = 450
+      memoryReservation = 280
+      essential         = true
 
       portMappings = [
         {
@@ -101,12 +102,14 @@ resource "aws_ecs_task_definition" "config_server" {
 }
 
 resource "aws_ecs_service" "config_server" {
-  name            = "${var.project_name}-config-server"
-  cluster         = aws_ecs_cluster.main.id
-  task_definition = aws_ecs_task_definition.config_server.arn
-  desired_count   = 1
+  name                               = "${var.project_name}-config-server"
+  cluster                            = aws_ecs_cluster.main.id
+  task_definition                    = aws_ecs_task_definition.config_server.arn
+  desired_count                      = 1
+  deployment_maximum_percent         = 100
+  deployment_minimum_healthy_percent = 0
 
-  # Run on Node 1 where config-server.petclinic.internal DNS points
+  # Run on Node 1 where config-server DNS points
   placement_constraints {
     type       = "memberOf"
     expression = "ec2InstanceId == ${aws_instance.ecs_nodes[0].id}"
@@ -126,9 +129,10 @@ resource "aws_ecs_task_definition" "discovery_server" {
     {
       name      = "discovery-server"
       image     = "${aws_ecr_repository.services["discovery-server"].repository_url}:latest"
-      cpu       = 256
-      memory    = 400
-      essential = true
+      cpu               = 256
+      memory            = 450
+      memoryReservation = 280
+      essential         = true
 
       portMappings = [
         {
@@ -168,12 +172,14 @@ resource "aws_ecs_task_definition" "discovery_server" {
 }
 
 resource "aws_ecs_service" "discovery_server" {
-  name            = "${var.project_name}-discovery-server"
-  cluster         = aws_ecs_cluster.main.id
-  task_definition = aws_ecs_task_definition.discovery_server.arn
-  desired_count   = 1
+  name                               = "${var.project_name}-discovery-server"
+  cluster                            = aws_ecs_cluster.main.id
+  task_definition                    = aws_ecs_task_definition.discovery_server.arn
+  desired_count                      = 1
+  deployment_maximum_percent         = 100
+  deployment_minimum_healthy_percent = 0
 
-  # Run on Node 1 where discovery-server.petclinic.internal DNS points
+  # Run on Node 1 where discovery-server DNS points
   placement_constraints {
     type       = "memberOf"
     expression = "ec2InstanceId == ${aws_instance.ecs_nodes[0].id}"
@@ -195,9 +201,10 @@ resource "aws_ecs_task_definition" "api_gateway" {
     {
       name      = "api-gateway"
       image     = "${aws_ecr_repository.services["api-gateway"].repository_url}:latest"
-      cpu       = 256
-      memory    = 400
-      essential = true
+      cpu               = 256
+      memory            = 450
+      memoryReservation = 280
+      essential         = true
 
       portMappings = [
         {
@@ -224,10 +231,12 @@ resource "aws_ecs_task_definition" "api_gateway" {
 }
 
 resource "aws_ecs_service" "api_gateway" {
-  name            = "${var.project_name}-api-gateway"
-  cluster         = aws_ecs_cluster.main.id
-  task_definition = aws_ecs_task_definition.api_gateway.arn
-  desired_count   = 1
+  name                               = "${var.project_name}-api-gateway"
+  cluster                            = aws_ecs_cluster.main.id
+  task_definition                    = aws_ecs_task_definition.api_gateway.arn
+  desired_count                      = 1
+  deployment_maximum_percent         = 100
+  deployment_minimum_healthy_percent = 0
 
   load_balancer {
     target_group_arn = aws_lb_target_group.api_gateway.arn
@@ -251,9 +260,10 @@ resource "aws_ecs_task_definition" "customers_service" {
     {
       name      = "customers-service"
       image     = "${aws_ecr_repository.services["customers-service"].repository_url}:latest"
-      cpu       = 256
-      memory    = 350
-      essential = true
+      cpu               = 256
+      memory            = 450
+      memoryReservation = 280
+      essential         = true
 
       portMappings = [
         {
@@ -280,10 +290,12 @@ resource "aws_ecs_task_definition" "customers_service" {
 }
 
 resource "aws_ecs_service" "customers_service" {
-  name            = "${var.project_name}-customers-service"
-  cluster         = aws_ecs_cluster.main.id
-  task_definition = aws_ecs_task_definition.customers_service.arn
-  desired_count   = 1
+  name                               = "${var.project_name}-customers-service"
+  cluster                            = aws_ecs_cluster.main.id
+  task_definition                    = aws_ecs_task_definition.customers_service.arn
+  desired_count                      = 1
+  deployment_maximum_percent         = 100
+  deployment_minimum_healthy_percent = 0
 
   depends_on = [aws_ecs_service.discovery_server]
 }
@@ -301,9 +313,10 @@ resource "aws_ecs_task_definition" "visits_service" {
     {
       name      = "visits-service"
       image     = "${aws_ecr_repository.services["visits-service"].repository_url}:latest"
-      cpu       = 256
-      memory    = 350
-      essential = true
+      cpu               = 256
+      memory            = 450
+      memoryReservation = 280
+      essential         = true
 
       portMappings = [
         {
@@ -330,10 +343,12 @@ resource "aws_ecs_task_definition" "visits_service" {
 }
 
 resource "aws_ecs_service" "visits_service" {
-  name            = "${var.project_name}-visits-service"
-  cluster         = aws_ecs_cluster.main.id
-  task_definition = aws_ecs_task_definition.visits_service.arn
-  desired_count   = 1
+  name                               = "${var.project_name}-visits-service"
+  cluster                            = aws_ecs_cluster.main.id
+  task_definition                    = aws_ecs_task_definition.visits_service.arn
+  desired_count                      = 1
+  deployment_maximum_percent         = 100
+  deployment_minimum_healthy_percent = 0
 
   depends_on = [aws_ecs_service.discovery_server]
 }
@@ -351,9 +366,10 @@ resource "aws_ecs_task_definition" "vets_service" {
     {
       name      = "vets-service"
       image     = "${aws_ecr_repository.services["vets-service"].repository_url}:latest"
-      cpu       = 256
-      memory    = 350
-      essential = true
+      cpu               = 256
+      memory            = 450
+      memoryReservation = 280
+      essential         = true
 
       portMappings = [
         {
@@ -380,10 +396,12 @@ resource "aws_ecs_task_definition" "vets_service" {
 }
 
 resource "aws_ecs_service" "vets_service" {
-  name            = "${var.project_name}-vets-service"
-  cluster         = aws_ecs_cluster.main.id
-  task_definition = aws_ecs_task_definition.vets_service.arn
-  desired_count   = 1
+  name                               = "${var.project_name}-vets-service"
+  cluster                            = aws_ecs_cluster.main.id
+  task_definition                    = aws_ecs_task_definition.vets_service.arn
+  desired_count                      = 1
+  deployment_maximum_percent         = 100
+  deployment_minimum_healthy_percent = 0
 
   depends_on = [aws_ecs_service.discovery_server]
 }
@@ -401,9 +419,10 @@ resource "aws_ecs_task_definition" "admin_server" {
     {
       name      = "admin-server"
       image     = "${aws_ecr_repository.services["admin-server"].repository_url}:latest"
-      cpu       = 256
-      memory    = 350
-      essential = true
+      cpu               = 256
+      memory            = 450
+      memoryReservation = 280
+      essential         = true
 
       portMappings = [
         {
@@ -430,10 +449,12 @@ resource "aws_ecs_task_definition" "admin_server" {
 }
 
 resource "aws_ecs_service" "admin_server" {
-  name            = "${var.project_name}-admin-server"
-  cluster         = aws_ecs_cluster.main.id
-  task_definition = aws_ecs_task_definition.admin_server.arn
-  desired_count   = 1
+  name                               = "${var.project_name}-admin-server"
+  cluster                            = aws_ecs_cluster.main.id
+  task_definition                    = aws_ecs_task_definition.admin_server.arn
+  desired_count                      = 1
+  deployment_maximum_percent         = 100
+  deployment_minimum_healthy_percent = 0
 
   depends_on = [aws_ecs_service.discovery_server]
 }
@@ -452,9 +473,10 @@ resource "aws_ecs_task_definition" "genai_service" {
     {
       name      = "genai-service"
       image     = "${aws_ecr_repository.services["genai-service"].repository_url}:latest"
-      cpu       = 256
-      memory    = 400
-      essential = true
+      cpu               = 256
+      memory            = 450
+      memoryReservation = 280
+      essential         = true
 
       portMappings = [
         {
@@ -486,11 +508,13 @@ resource "aws_ecs_task_definition" "genai_service" {
 }
 
 resource "aws_ecs_service" "genai_service" {
-  count           = var.enable_genai ? 1 : 0
-  name            = "${var.project_name}-genai-service"
-  cluster         = aws_ecs_cluster.main.id
-  task_definition = aws_ecs_task_definition.genai_service[0].arn
-  desired_count   = 1
+  count                              = var.enable_genai ? 1 : 0
+  name                               = "${var.project_name}-genai-service"
+  cluster                            = aws_ecs_cluster.main.id
+  task_definition                    = aws_ecs_task_definition.genai_service[0].arn
+  desired_count                      = 1
+  deployment_maximum_percent         = 100
+  deployment_minimum_healthy_percent = 0
 
   depends_on = [aws_ecs_service.discovery_server]
 }

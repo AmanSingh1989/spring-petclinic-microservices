@@ -29,3 +29,9 @@ generated/
 *.tfvars
 !*.tfvars.example
 .terraform.lock.hcl
+
+# Environment Files
+.env
+*.env
+!.env.example
+

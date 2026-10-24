@@ -86,21 +86,46 @@ jobs:
 
       - name: Trigger Rolling Deployment on Amazon ECS Services
         run: |
-          SERVICES=(
-            "petclinic-config-server"
-            "petclinic-discovery-server"
-            "petclinic-api-gateway"
+          echo "=== Step 1: Deploying Config Server ==="
+          aws ecs update-service \
+            --cluster "${{ env.CLUSTER_NAME }}" \
+            --service "petclinic-config-server" \
+            --force-new-deployment \
+            --region "${{ env.AWS_REGION }}" || echo "petclinic-config-server may not exist yet."
+
+          echo "Waiting for petclinic-config-server to become stable..."
+          aws ecs wait services-stable \
+            --cluster "${{ env.CLUSTER_NAME }}" \
+            --services "petclinic-config-server" \
+            --region "${{ env.AWS_REGION }}"
+
+          echo "=== Step 2: Deploying Discovery Server ==="
+          aws ecs update-service \
+            --cluster "${{ env.CLUSTER_NAME }}" \
+            --service "petclinic-discovery-server" \
+            --force-new-deployment \
+            --region "${{ env.AWS_REGION }}" || echo "petclinic-discovery-server may not exist yet."
+
+          echo "Waiting for petclinic-discovery-server to become stable..."
+          aws ecs wait services-stable \
+            --cluster "${{ env.CLUSTER_NAME }}" \
+            --services "petclinic-discovery-server" \
+            --region "${{ env.AWS_REGION }}"
+
+          echo "=== Step 3: Deploying Dependent Microservices ==="
+          DEPENDENT_SERVICES=(
             "petclinic-customers-service"
             "petclinic-visits-service"
             "petclinic-vets-service"
+            "petclinic-api-gateway"
             "petclinic-admin-server"
           )
 
           if [ "${{ env.ENABLE_GENAI }}" = "true" ]; then
-            SERVICES+=("petclinic-genai-service")
+            DEPENDENT_SERVICES+=("petclinic-genai-service")
           fi
 
-          for SVC in "${SERVICES[@]}"; do
+          for SVC in "${DEPENDENT_SERVICES[@]}"; do
             echo "Triggering new deployment for service: $SVC"
             aws ecs update-service \
               --cluster "${{ env.CLUSTER_NAME }}" \
@@ -108,3 +133,4 @@ jobs:
               --force-new-deployment \
               --region "${{ env.AWS_REGION }}" || echo "Service $SVC may not exist yet or is pending creation."
           done
+
